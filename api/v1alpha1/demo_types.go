@@ -23,7 +23,7 @@ type DemoSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	// The following markers will use OpenAPI v3 schema to validate the value
 	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-	Name *string `json:"omitempty"`
+	Name *string `json:"name,omitempty"`
 
 	NodePort *int32 `json:"nodePort,omitempty"`
 }
