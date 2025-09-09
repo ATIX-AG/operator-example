@@ -7,17 +7,17 @@ RUN go env -w GOMODCACHE=/gomod-cache
 WORKDIR /app
 
 # Copy the Go Modules manifests
-WORKDIR /app/demo-operator
-COPY /demo-operator/go.mod go.mod
-COPY /demo-operator/go.sum go.sum
+WORKDIR /app/operator-example
+COPY operator-example/go.mod go.mod
+COPY operator-example/go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
 # Copy the go source
-COPY /operator-example/cmd/main.go cmd/main.go
-COPY /operator-example/api/ api/
-COPY /operator-example/internal/ internal/
+COPY operator-example/cmd/main.go cmd/main.go
+COPY operator-example/api/ api/
+COPY operator-example/internal/ internal/
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
