@@ -1,0 +1,9 @@
+apiVersion: demo.atix.de.atix.de/v1alpha1
+kind: Demo
+metadata:
+  labels:
+    app.kubernetes.io/name: operator-example
+    app.kubernetes.io/managed-by: kustomize
+  name: demo-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,4 +1,4 @@
 # operator-example
 
 ## description
-This is a easy kubebuilder project to visualize what is needed to create a CRD and a kubernetes operator in GO.
+This project is a working example of a kubernetes operator which controls the lifecycle of a own CRD.
