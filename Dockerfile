@@ -15,9 +15,9 @@ COPY /demo-operator/go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY /demo-operator/cmd/main.go cmd/main.go
-COPY /demo-operator/api/ api/
-COPY /demo-operator/internal/ internal/
+COPY /operator-example/cmd/main.go cmd/main.go
+COPY /operator-example/api/ api/
+COPY /operator-example/internal/ internal/
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
@@ -33,7 +33,7 @@ RUN \
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /app/demo-operator .
+COPY --from=builder /app/operator-example .
 USER 65532:65532
 
 ENTRYPOINT ["/operator"]
