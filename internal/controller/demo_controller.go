@@ -77,16 +77,15 @@ func (r *DemoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	case v1alpha1.DemoPhaseRunning:
 		// waiting for app to startup (health-checks)
-
-	case v1alpha1.DemoPhaseDegraded:
-		// try to regenerate the resource and return to 'running'
-
-	case v1alpha1.DemoPhaseFailed:
-		// exit with error code and message
-
-	case v1alpha1.DemoPhaseTerminating:
-		// delete resource and dependencies
-
+		ready, err := r.healthCheck(ctx, &obj)
+		if err != nil {
+			return r.failOrRequeue(ctx, &obj, statusPatch, err)
+		}
+		if ready {
+			r.setCondition(&obj, "Ready", metav1.ConditionTrue, "Ready", "Ready")
+		} else {
+			r.setCondition(&obj, "Ready", metav1.ConditionFalse, "NotReady", "Not ready")
+		}
 	}
 
 	// patch status only once per reconciliation
@@ -123,8 +122,8 @@ func (r *DemoReconciler) healthCheck(ctx context.Context, obj *v1alpha1.Demo) (b
 func (r *DemoReconciler) ensureDeployment(ctx context.Context, obj *v1alpha1.Demo) error {
 	dep := &appsV1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      obj.Name,      // oder ein eigener Name
-			Namespace: obj.Namespace, // gleiches Namespace wie die CR
+			Name:      obj.Name,
+			Namespace: obj.Namespace,
 		},
 	}
 
@@ -147,13 +146,13 @@ func (r *DemoReconciler) ensureDeployment(ctx context.Context, obj *v1alpha1.Dem
 func (r *DemoReconciler) ensureService(ctx context.Context, obj *v1alpha1.Demo) error {
 	dep := &coreV1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      obj.Name,      // oder ein eigener Name
-			Namespace: obj.Namespace, // gleiches Namespace wie die CR
+			Name:      obj.Name,
+			Namespace: obj.Namespace,
 		},
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, dep, func() error {
-		desired := generateDeployment(obj)
+		desired := generateService(obj)
 
 		if dep.Labels == nil {
 			dep.Labels = map[string]string{}
