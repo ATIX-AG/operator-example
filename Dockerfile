@@ -1,39 +1,51 @@
-# Build the manager binary
+# syntax=docker/dockerfile:1.7
+
+############################
+# Build the operator binary
+############################
 FROM golang:1.24 AS builder
 
-RUN go env -w GOCACHE=/go-cache
-RUN go env -w GOMODCACHE=/gomod-cache
+# Speed up builds
+ENV GOCACHE=/go-cache \
+    GOMODCACHE=/gomod-cache \
+    CGO_ENABLED=0 \
+    GOOS=linux
 
-WORKDIR /app
-
-# Copy the Go Modules manifests
 WORKDIR /app/operator-example
+
+# Copy Go module files first (for better caching)
 COPY operator-example/go.mod go.mod
 COPY operator-example/go.sum go.sum
-# cache deps before building and copying source so that we don't need to re-download as much
-# and so that source changes don't invalidate our downloaded layer
-RUN go mod download
 
-# Copy the go source
+# Download deps (cached)
+RUN --mount=type=cache,target=/gomod-cache \
+    --mount=type=cache,target=/go-cache \
+    go mod download
+
+# Copy the rest of the source
 COPY operator-example/cmd/main.go cmd/main.go
 COPY operator-example/api/ api/
 COPY operator-example/internal/ internal/
 
-# Build
-# the GOARCH has not a default value to allow the binary be built according to the host where the command
-# was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
-# the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
-# by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-RUN \
-  --mount=type=cache,target=/gomod-cache \
-  --mount=type=cache,target=/go-cache \
-  CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o operator ./cmd/main.go
+# Build the static binary
+RUN --mount=type=cache,target=/gomod-cache \
+    --mount=type=cache,target=/go-cache \
+    go build -a -installsuffix cgo -o /app/operator-example/operator ./cmd/main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+
+######################################
+# Minimal runtime image (distroless)
+######################################
+# If your app makes HTTPS requests, you’ll want CA certs.
+# Use "base" instead of "static" to include them.
+FROM gcr.io/distroless/base-debian12:nonroot
+
 WORKDIR /
-COPY --from=builder /app/operator-example .
-USER 65532:65532
+
+# Copy only the binary (not the whole source tree)
+COPY --from=builder /app/operator-example/operator /operator
+
+# Run as non-root (UID/GID provided by :nonroot images)
+USER nonroot:nonroot
 
 ENTRYPOINT ["/operator"]
